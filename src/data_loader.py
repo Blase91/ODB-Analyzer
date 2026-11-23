@@ -58,6 +58,15 @@ def load_telemetry_csv(
     return df_pivot, units_map
 
 
+def get_catalyst_misfire_channels(columns: list[str]) -> list[str]:
+    """Return per-cylinder catalyst damaging misfire channel names."""
+    return [
+        c
+        for c in columns
+        if "catalyst damaging misfires" in c.lower() and "#" in c
+    ]
+
+
 def get_channel_presets(columns: list[str]) -> dict[str, dict[str, list[str]]]:
     """Return preset primary/secondary channel selections matching available columns."""
     col_set = set(columns)
@@ -71,11 +80,7 @@ def get_channel_presets(columns: list[str]) -> dict[str, dict[str, list[str]]]:
             "secondary": [c for c in ["Calculated boost", "Intake manifold absolute pressure"] if c in col_set],
         },
         "Misfires": {
-            "primary": [
-                c
-                for c in columns
-                if "catalyst damaging misfires" in c.lower() and "#" in c
-            ],
+            "primary": get_catalyst_misfire_channels(columns),
             "secondary": [c for c in ["Calculated engine load value"] if c in col_set],
         },
         "Distance": {

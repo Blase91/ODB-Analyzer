@@ -7,8 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from src.data_loader import get_channel_presets, load_telemetry_csv
-from src.plotting import build_summary_table, build_telemetry_figure
+from src.data_loader import get_catalyst_misfire_channels, get_channel_presets, load_telemetry_csv
+from src.plotting import (
+    build_misfire_breakdown_figure,
+    build_summary_table,
+    build_telemetry_figure,
+)
 
 SAMPLE_CSV = Path(__file__).resolve().parent.parent / "2026-11-22 09-14-55.csv"
 
@@ -79,3 +83,19 @@ def test_elapsed_time_uses_global_t0():
     )
     assert list(fig.data[0].x) == [0.0, 2.0]
     assert list(fig.data[1].x) == [1.0, 2.0]
+
+
+def test_misfire_breakdown_figure():
+    df_pivot, _ = load_telemetry_csv(SAMPLE_CSV)
+    misfire_cols = get_catalyst_misfire_channels([str(c) for c in df_pivot.columns])
+    assert len(misfire_cols) == 4
+
+    fig = build_misfire_breakdown_figure(df_pivot, misfire_cols)
+    # 4 scatter traces (one per cylinder) + 1 bar trace
+    assert len(fig.data) == 5
+    bar_trace = fig.data[-1]
+    assert list(bar_trace.x) == ["Cyl #1", "Cyl #2", "Cyl #3", "Cyl #4"]
+    assert list(bar_trace.y) == [6.0, 0.0, 54.0, 0.0]
+    event_counts = [len(trace.x) for trace in fig.data[:4]]
+    assert event_counts == [1, 0, 9, 0]
+    assert fig.layout.xaxis2.tickformat == "%H:%M:%S"

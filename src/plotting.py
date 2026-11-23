@@ -133,6 +133,88 @@ def build_telemetry_figure(
     return fig
 
 
+def _short_cylinder_label(channel: str) -> str:
+    """Extract a concise cylinder label (e.g. 'Cyl #1') from a misfire channel name."""
+    if "#" in channel:
+        return f"Cyl #{channel.split('#')[-1].strip()}"
+    return channel
+
+
+def build_misfire_breakdown_figure(
+    df_pivot: pd.DataFrame,
+    misfire_channels: list[str],
+    time_unit: str = "Absolute Time (HH:MM:SS)",
+) -> go.Figure:
+    """Build a per-cylinder total bar chart and misfire event delta timeline."""
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        column_widths=[0.32, 0.68],
+        subplot_titles=("Total Catalyst Damaging Misfires", "Misfire Increments Over Time"),
+    )
+    t0 = float(df_pivot.index.min()) if not df_pivot.empty else None
+
+    labels: list[str] = []
+    totals: list[float] = []
+
+    for ch in misfire_channels:
+        if ch not in df_pivot.columns:
+            continue
+        clean = df_pivot[ch].dropna()
+        deltas = clean.diff().fillna(0).clip(lower=0)
+        events = deltas[deltas > 0]
+        label = _short_cylinder_label(ch)
+        labels.append(label)
+        totals.append(float(deltas.sum()))
+
+        x_events, _ = compute_time_axis(events.index, time_unit, t0=t0)
+        fig.add_trace(
+            go.Scatter(
+                x=x_events,
+                y=events,
+                mode="markers",
+                name=label,
+                marker={"size": 10},
+                hovertemplate=f"{label}<br>Time: %{{x}}<br>Misfires: +%{{y}}<extra></extra>",
+            ),
+            row=1,
+            col=2,
+        )
+
+    fig.add_trace(
+        go.Bar(
+            x=labels,
+            y=totals,
+            text=[f"{t:g}" for t in totals],
+            textposition="auto",
+            showlegend=False,
+            hovertemplate="%{x}: %{y:g} total<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
+
+    _, x_title = compute_time_axis(df_pivot.index, time_unit, t0=t0)
+    x_full, _ = compute_time_axis(df_pivot.index, time_unit, t0=t0)
+    xaxis2_cfg: dict[str, object] = {"title": x_title}
+    if not df_pivot.empty:
+        xaxis2_cfg["range"] = [x_full.min(), x_full.max()]
+    if time_unit == "Absolute Time (HH:MM:SS)":
+        xaxis2_cfg["tickformat"] = "%H:%M:%S"
+        xaxis2_cfg["hoverformat"] = "%H:%M:%S"
+
+    fig.update_layout(
+        height=460,
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.08, "xanchor": "right", "x": 1},
+        margin={"l": 60, "r": 40, "t": 70, "b": 40},
+        xaxis={"title": "Cylinder"},
+        yaxis={"title": "Total Misfires", "rangemode": "tozero"},
+        xaxis2=xaxis2_cfg,
+        yaxis2={"title": "Misfire Increment", "rangemode": "tozero"},
+    )
+    return fig
+
+
 def build_summary_table(
     df_pivot: pd.DataFrame,
     units_map: dict[str, str],

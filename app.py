@@ -6,8 +6,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.data_loader import get_channel_presets, load_telemetry_csv
-from src.plotting import build_summary_table, build_telemetry_figure, format_channel_label
+from src.data_loader import get_catalyst_misfire_channels, get_channel_presets, load_telemetry_csv
+from src.plotting import (
+    build_misfire_breakdown_figure,
+    build_summary_table,
+    build_telemetry_figure,
+    format_channel_label,
+)
 
 st.set_page_config(page_title="Telemetry Data Analyzer", layout="wide")
 st.title("Telemetry Data Analyzer")
@@ -111,27 +116,42 @@ m4.metric("Available Channels", len(all_channels))
 
 selected_all = list(dict.fromkeys(primary_channels + secondary_channels))
 
-if not selected_all:
-    st.warning("Select at least one channel from the sidebar dropdowns to display a chart.")
-else:
-    fig = build_telemetry_figure(
-        df_pivot=df_pivot,
-        units_map=units_map,
-        primary_channels=primary_channels,
-        secondary_channels=secondary_channels,
-        gap_mode=gap_mode,
-        time_unit=time_unit,
-    )
-    st.plotly_chart(fig, width="stretch")
+tab_explorer, tab_misfires = st.tabs(["Telemetry Explorer", "Misfire Analysis"])
 
-    st.subheader("Summary Statistics")
-    summary_df = build_summary_table(df_pivot, units_map, selected_all)
-    st.dataframe(summary_df, width="stretch", hide_index=True)
+with tab_explorer:
+    if not selected_all:
+        st.warning("Select at least one channel from the sidebar dropdowns to display a chart.")
+    else:
+        fig = build_telemetry_figure(
+            df_pivot=df_pivot,
+            units_map=units_map,
+            primary_channels=primary_channels,
+            secondary_channels=secondary_channels,
+            gap_mode=gap_mode,
+            time_unit=time_unit,
+        )
+        st.plotly_chart(fig, width="stretch")
 
-    export_csv = df_pivot[selected_all].to_csv().encode("utf-8")
-    st.download_button(
-        label="Download Selected Channels (Pivoted CSV)",
-        data=export_csv,
-        file_name=f"filtered_{Path(active_name).stem}.csv",
-        mime="text/csv",
-    )
+        st.subheader("Summary Statistics")
+        summary_df = build_summary_table(df_pivot, units_map, selected_all)
+        st.dataframe(summary_df, width="stretch", hide_index=True)
+
+        export_csv = df_pivot[selected_all].to_csv().encode("utf-8")
+        st.download_button(
+            label="Download Selected Channels (Pivoted CSV)",
+            data=export_csv,
+            file_name=f"filtered_{Path(active_name).stem}.csv",
+            mime="text/csv",
+        )
+
+with tab_misfires:
+    misfire_cols = get_catalyst_misfire_channels(all_channels)
+    if not misfire_cols:
+        st.info("No per-cylinder catalyst damaging misfire channels found in this dataset.")
+    else:
+        misfire_fig = build_misfire_breakdown_figure(
+            df_pivot=df_pivot,
+            misfire_channels=misfire_cols,
+            time_unit=time_unit,
+        )
+        st.plotly_chart(misfire_fig, width="stretch")
