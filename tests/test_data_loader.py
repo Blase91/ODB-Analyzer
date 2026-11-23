@@ -14,7 +14,7 @@ from src.plotting import (
     build_telemetry_figure,
 )
 
-SAMPLE_CSV = Path(__file__).resolve().parent.parent / "2026-11-22 09-14-55.csv"
+SAMPLE_CSV = Path(__file__).resolve().parent.parent / "src" / "example_data" / "2026-11-22 09-14-55.csv"
 
 
 def test_load_sample_csv_shape_and_units():

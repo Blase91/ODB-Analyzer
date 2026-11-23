@@ -31,7 +31,8 @@ def _load_cached_path(path_str: str):
 
 
 def _discover_workspace_csvs() -> list[Path]:
-    return sorted(Path(".").glob("*.csv"))
+    csvs = list(Path(".").glob("*.csv")) + list((Path("src") / "example_data").glob("*.csv"))
+    return sorted(dict.fromkeys(csvs))
 
 
 with st.sidebar:
