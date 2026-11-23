@@ -71,7 +71,11 @@ def get_channel_presets(columns: list[str]) -> dict[str, dict[str, list[str]]]:
             "secondary": [c for c in ["Calculated boost", "Intake manifold absolute pressure"] if c in col_set],
         },
         "Misfires": {
-            "primary": [c for c in columns if "misfire" in c.lower()],
+            "primary": [
+                c
+                for c in columns
+                if "catalyst damaging misfires" in c.lower() and "#" in c
+            ],
             "secondary": [c for c in ["Calculated engine load value"] if c in col_set],
         },
         "Distance": {

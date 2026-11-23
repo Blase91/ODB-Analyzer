@@ -93,7 +93,7 @@ with st.sidebar:
     st.header("4. Plot Options")
     time_unit = st.selectbox(
         "Time Axis",
-        options=["Elapsed Minutes", "Elapsed Seconds", "Raw SECONDS"],
+        options=["Absolute Time (HH:MM:SS)", "Elapsed Minutes", "Elapsed Seconds", "Raw SECONDS"],
         index=0,
     )
     gap_mode = st.selectbox(

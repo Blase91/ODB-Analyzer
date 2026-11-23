@@ -11,3 +11,6 @@ wheels/
 
 # raw data
 *.csv
+
+# batch
+*.bat
